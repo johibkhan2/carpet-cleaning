@@ -143,6 +143,14 @@
 </head>
 <body>
 
+<!-- Modal -->
+<div id="editModal" style="width: 50%;display:none; position:fixed; left:50%; transform:translateX(-50%);z-index:1000;">
+  <div id="editContent"></div>
+  <button onclick="closeModal()">Close</button>
+</div>
+<div id="overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:999;"></div>
+
+
   <div class="top-bar">
     <h2>Cleaning Orders</h2>
     <p>Welcome, <?= $_SESSION['admin'] ?> | <a href="logout.php">Logout</a></p>
@@ -157,14 +165,14 @@
       <option <?= @$_GET['status'] == 'Completed' ? 'selected' : '' ?>>Completed</option>
     </select>
 
-    <label>From:</label>
+    <!-- <label>From:</label>
     <input type="date" name="from" value="<?= @$_GET['from'] ?>">
 
     <label>To:</label>
-    <input type="date" name="to" value="<?= @$_GET['to'] ?>">
+    <input type="date" name="to" value="<?= @$_GET['to'] ?>"> -->
 
     <button type="submit">Filter</button>
-    <a href="index.php">Reset</a>
+    <a href="/admin/dashboard.php">Reset</a>
   </form>
 
   <!-- <a href="create.php" class="add-btn">+ Add New Order</a> -->
@@ -212,9 +220,9 @@
         <td>{$row['name']}</td>
         <td>{$row['email']}</td>
         <td>{$row['phone1']}</td>
-        <td>{$row['status']}</td>
+       <td class='editable-status' data-id='{$row['id']}' data-status='{$row['status']}'>{$row['status']}</td>
         <td class='actions'>
-          <a href='edit.php?id={$row['id']}'>Edit</a>
+          <a href='#' onclick='openEdit({$row['id']}); return false;'>Edit</a>
           <a href='delete.php?id={$row['id']}' onclick=\"return confirm('Are you sure?')\">Delete</a>
         </td>
       </tr>";
@@ -233,5 +241,51 @@
       <a href="?<?= http_build_query(array_merge($_GET, ['page' => $page + 1])) ?>">Next »</a>
     <?php endif; ?>
   </div>
+  <script>
+function openEdit(id) {
+  // console.log('Opening edit for ID:', id);
+  document.cookie = "editOrderId=" + id + "; path=/";
+  fetch('edit.php?id=' + id)
+    .then(response => response.text())
+    .then(html => {
+      document.getElementById('editContent').innerHTML = html;
+      document.getElementById('editModal').style.display = 'block';
+      document.getElementById('overlay').style.display = 'block';
+    });
+}
+
+function closeModal() {
+  document.getElementById('editModal').style.display = 'none';
+  document.getElementById('overlay').style.display = 'none';
+}
+
+// Optional: Hook into form submit to auto-close
+document.addEventListener('submit', function(e) {
+  if (e.target.matches('#editForm')) {
+    e.preventDefault();
+    
+    const formData = new FormData(e.target);
+    const storedId = localStorage.getItem('editOrderId');
+
+    if (storedId) {
+      formData.set('id', storedId); // add or overwrite the ID field
+    }
+
+    fetch('edit.php', {
+      method: 'POST',
+      body: formData
+    })
+    .then(res => res.text())
+    .then(res => {
+      alert('Saved!');
+      localStorage.removeItem('editOrderId'); // optional cleanup
+      closeModal();
+      location.reload(); // or just update part of the page
+    });
+  }
+});
+
+</script>
+
 </body>
 </html>
